@@ -59,6 +59,11 @@ public class GameAssets implements Disposable {
         return get("textures/ayan/crouch/" + dir + ".png");
     }
 
+    /** Dodging pose (flashed during a near-capture moment) for a direction. */
+    public Texture ayanDodge(String dir) {
+        return get("textures/ayan/dodge/" + dir + ".png");
+    }
+
     public Texture robot() {
         return get("textures/robot.png");
     }

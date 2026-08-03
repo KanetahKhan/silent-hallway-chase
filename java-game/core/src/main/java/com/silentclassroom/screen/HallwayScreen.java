@@ -58,6 +58,9 @@ public class HallwayScreen implements Screen {
     private float walkAnimTime = 0f;
     private boolean playerMoving = false;
     private int currentWalkFrame = -1; // -1 = idle frame
+    private float dodgeTimer = 0f;     // >0 = flash dodge pose (near-capture)
+    private boolean dodgeShown = false;
+    private boolean robotWasClose = false;
 
     // 2D HUD
     private ShapeRenderer shape;
@@ -326,12 +329,26 @@ public class HallwayScreen implements Screen {
 
         // Check capture (with post-capture invulnerability cooldown)
         captureCooldown = Math.max(0f, captureCooldown - delta);
+        dodgeTimer = Math.max(0f, dodgeTimer - delta);
+
+        // Near-miss dodge: robot lunges within grab range while chasing but
+        // doesn't catch Ayan — flash the dodge pose for a dramatic close call.
+        {
+            float rdx = robot.x - game.session.playerX;
+            float rdz = robot.z - game.session.playerZ;
+            float rDist = (float) Math.sqrt(rdx * rdx + rdz * rdz);
+            boolean close = robot.state == RobotAI.State.CHASE && rDist < 2.2f;
+            if (close && !robotWasClose) dodgeTimer = 0.45f;
+            robotWasClose = close;
+        }
+
         if (captureCooldown <= 0f
                 && robot.isCatchingPlayer(game.session.playerX, game.session.playerZ, game.session.playerHiding)) {
             game.session.onCapture();
             Sfx.stopChaseLoop();
             Sfx.caught();
             captureFlash = 1f;
+            dodgeTimer = 0.6f; // Ayan twists away as the robot grabs him
             captureMsg = "CAUGHT!  -150 pts  -20 sec  HP:" + game.session.hp;
             captureMsgTimer = 2.5f;
             captureCooldown = 3f;
@@ -478,16 +495,19 @@ public class HallwayScreen implements Screen {
         currentWalkFrame = -2; // force texture refresh
     }
 
-    /** Swap Ayan's texture to the current walk frame (or idle when standing). */
+    /** Swap Ayan's texture: dodge pose during near-captures, else walk/idle. */
     private void updatePlayerSprite() {
+        boolean dodging = dodgeTimer > 0f;
         int frame = playerMoving
             ? ((int) walkAnimTime) % com.silentclassroom.GameAssets.AYAN_WALK_FRAMES
             : -1;
-        if (frame == currentWalkFrame) return;
+        if (frame == currentWalkFrame && dodging == dodgeShown) return;
         currentWalkFrame = frame;
+        dodgeShown = dodging;
         playerModel.materials.first().set(TextureAttribute.createDiffuse(
-            frame < 0 ? game.assets.ayan(playerFacing)
-                      : game.assets.ayanWalk(playerFacing, frame)));
+            dodging  ? game.assets.ayanDodge(playerFacing)
+            : frame < 0 ? game.assets.ayan(playerFacing)
+                        : game.assets.ayanWalk(playerFacing, frame)));
     }
 
     private void scanNearby() {

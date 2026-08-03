@@ -61,6 +61,9 @@ public class RoomScreen implements Screen {
     private ModelInstance crouchInst;
     private Model crouchModel;
     private String crouchDir = "south";
+    private float dodgeTimer = 0f;      // >0 = flash dodge pose (near-capture)
+    private boolean dodgeShown = false;
+    private boolean robotWasClose = false;
 
     // Robot intruder
     private ModelInstance robotInst;
@@ -381,6 +384,7 @@ public class RoomScreen implements Screen {
         totalTime += delta;
         captureFlash = Math.max(0f, captureFlash - delta * 3f);
         msgTimer     = Math.max(0f, msgTimer - delta);
+        dodgeTimer   = Math.max(0f, dodgeTimer - delta);
         // The "press E to start mini-game" offer has its own lifetime (not tied
         // to the shared HUD message timer, which unrelated events reset) so a
         // later E press elsewhere in the room can't silently launch the game.
@@ -559,14 +563,18 @@ public class RoomScreen implements Screen {
         }
     }
 
-    /** Swap the crouch billboard texture to match the player's facing (8-way). */
+    /** Swap the crouch billboard texture to match the player's facing (8-way);
+     *  briefly shows the dodge pose during a near-capture moment. */
     private void updateCrouchSprite() {
         int idx = Math.round(yaw / 45f) & 7; // two's complement keeps negatives in 0..7
         String dir = com.silentclassroom.GameAssets.AYAN_DIRS[idx];
-        if (dir.equals(crouchDir)) return;
+        boolean dodging = dodgeTimer > 0f;
+        if (dir.equals(crouchDir) && dodging == dodgeShown) return;
         crouchDir = dir;
+        dodgeShown = dodging;
         crouchInst.materials.first().set(TextureAttribute.createDiffuse(
-            game.assets.ayanCrouch(crouchDir)));
+            dodging ? game.assets.ayanDodge(crouchDir)
+                    : game.assets.ayanCrouch(crouchDir)));
     }
 
     /** Find the furniture index within interaction range, or -1. */
@@ -605,6 +613,11 @@ public class RoomScreen implements Screen {
                 Sfx.servoStep();
                 robotStepTimer = 0.4f;
             }
+            // Near-miss dodge: the robot sweeps right past Ayan's hiding spot
+            // without grabbing him — flash the dodge pose for a close call.
+            boolean close = dist < 2.0f;
+            if (close && !robotWasClose && hiding) dodgeTimer = 0.5f;
+            robotWasClose = close;
             if (dist < 1.5f && !hiding && captureCooldown <= 0f) {
                 Sfx.caught();
                 captureFlash = 1f;
