@@ -31,11 +31,18 @@ public class SilentClassroomGame extends Game {
         toMainMenu();
     }
 
-    /** Swap screens and dispose the outgoing one (LibGDX only hides it). */
+    /**
+     * Swap screens. The outgoing screen is disposed on the next frame rather
+     * than immediately: the incoming screen has already built its GL resources
+     * by the time we get here, and tearing the old one down in the middle of
+     * the swap frees buffers that are still bound, corrupting the native heap.
+     */
     private void switchScreen(com.badlogic.gdx.Screen next) {
-        com.badlogic.gdx.Screen old = getScreen();
+        final com.badlogic.gdx.Screen old = getScreen();
         setScreen(next);
-        if (old != null) old.dispose();
+        if (old != null) {
+            com.badlogic.gdx.Gdx.app.postRunnable(old::dispose);
+        }
     }
 
     public void toMainMenu() {

@@ -26,4 +26,8 @@ jar {
     }
 }
 
+tasks.named('run') {
+    jvmArgs "-XX:ErrorFile=${rootProject.file('hs_err_%p.log').path}"
+}
+
 tasks.register('dist') { dependsOn 'jar' }

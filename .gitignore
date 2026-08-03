@@ -49,3 +49,7 @@ Thumbs.db
 .local/
 *.jar
 *.jar
+
+# JVM crash logs (see -XX:ErrorFile in lwjgl3/build.gradle)
+hs_err_*.log
+replay_pid*.log

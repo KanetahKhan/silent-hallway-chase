@@ -149,12 +149,9 @@ public class HallwayScreen implements Screen {
         staticInstances.add(floorInst);
 
         // ── Ceiling ──
-        Model ceilM = mb.createBox(4f, 0.1f, HALL_LEN,
-            new Material(ColorAttribute.createDiffuse(0.55f, 0.55f, 0.6f, 1f)), attr);
-        ownedModels.add(ceilM);
-        ModelInstance ceilInst = new ModelInstance(ceilM);
-        ceilInst.transform.setToTranslation(0f, CEIL_H + 0.05f, 0f);
-        staticInstances.add(ceilInst);
+        // Deliberately not rendered: the hallway uses an overhead chase camera
+        // (y = 11, well above CEIL_H), so a solid ceiling slab sits between the
+        // camera and the corridor and hides Ayan, the sentinel and the floor.
 
         // ── Ceiling strip lights ──
         Model lightStripM = mb.createBox(0.3f, 0.05f, 1.5f,
@@ -381,7 +378,7 @@ public class HallwayScreen implements Screen {
             boolean near = (i == nearDoorId);
             float brightness = near ? 1.25f : 0.7f;
             boolean isClass = i < 4;
-            ((ColorAttribute) doorPanelModels[i].materials.first()
+            ((ColorAttribute) doorInstances[i].materials.first()
                 .get(ColorAttribute.Diffuse))
                 .color.set(
                     (isClass ? 0.75f : 0.85f) * brightness,
@@ -392,7 +389,7 @@ public class HallwayScreen implements Screen {
 
         // Update robot eye colour by state
         float ec = robot.state == RobotAI.State.CHASE ? 1f : (robot.state == RobotAI.State.ALERT ? 0.7f : 0.3f);
-        ((ColorAttribute) robotEyeModel.materials.first().get(ColorAttribute.Diffuse)).color.set(ec, 0.05f, 0.05f, 1f);
+        ((ColorAttribute) robotEyeInst.materials.first().get(ColorAttribute.Diffuse)).color.set(ec, 0.05f, 0.05f, 1f);
 
         // ── 3D Render ──
         Gdx.gl.glClearColor(0.04f, 0.04f, 0.07f, 1f);
@@ -504,7 +501,9 @@ public class HallwayScreen implements Screen {
         if (frame == currentWalkFrame && dodging == dodgeShown) return;
         currentWalkFrame = frame;
         dodgeShown = dodging;
-        playerModel.materials.first().set(TextureAttribute.createDiffuse(
+        // NB: mutate the *instance* material — ModelInstance copies the Model's
+        // materials on construction, so changing the Model has no visible effect.
+        playerInst.materials.first().set(TextureAttribute.createDiffuse(
             dodging  ? game.assets.ayanDodge(playerFacing)
             : frame < 0 ? game.assets.ayan(playerFacing)
                         : game.assets.ayanWalk(playerFacing, frame)));
