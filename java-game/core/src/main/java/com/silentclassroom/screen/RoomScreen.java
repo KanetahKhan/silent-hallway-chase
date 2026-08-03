@@ -22,6 +22,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.silentclassroom.Sfx;
 import com.silentclassroom.SilentClassroomGame;
 import com.silentclassroom.game.Room;
 
@@ -89,6 +90,11 @@ public class RoomScreen implements Screen {
     private float robotAlertLevel = 0f;
     private float captureCooldown = 0f;
 
+    // Audio state
+    private float footstepTimer = 0f;
+    private boolean footLeft = false;
+    private float robotStepTimer = 0f;
+
     public RoomScreen(SilentClassroomGame game, int roomId) {
         this.game   = game;
         this.roomId = roomId;
@@ -107,6 +113,7 @@ public class RoomScreen implements Screen {
 
         Gdx.input.setCursorCatched(true);
         game.session.roomVisited[roomId] = true;
+        Sfx.door();
     }
 
     // ───────────────────────────────── SETUP ──────────────────────────────────
@@ -414,6 +421,18 @@ public class RoomScreen implements Screen {
         float len = (float) Math.sqrt(mvX * mvX + mvZ * mvZ);
         if (len > 0) { mvX /= len; mvZ /= len; }
 
+        // Footsteps (quieter cadence while hiding/crouched — skip entirely)
+        if (len > 0 && !hiding) {
+            footstepTimer -= delta;
+            if (footstepTimer <= 0f) {
+                Sfx.footstep(footLeft);
+                footLeft = !footLeft;
+                footstepTimer = speed > 3f ? 0.28f : 0.42f;
+            }
+        } else {
+            footstepTimer = 0f;
+        }
+
         float nx = fpX + mvX * speed * delta;
         float nz = fpZ + mvZ * speed * delta;
         // Room bounds (slightly inside walls)
@@ -430,6 +449,7 @@ public class RoomScreen implements Screen {
             if (ni >= 0) {
                 hiding = !hiding;
                 game.session.playerHiding = hiding;
+                Sfx.hide(hiding);
                 if (hiding) { msgText = "Hiding under " + furnitureName[ni]; msgTimer = 2f; }
                 else        { msgText = ""; }
             }
@@ -451,6 +471,7 @@ public class RoomScreen implements Screen {
 
         // ESC = exit room
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            Sfx.door();
             exitRoom();
             game.toHallway();
         }
@@ -463,6 +484,7 @@ public class RoomScreen implements Screen {
                 msgText = "Terminal already cleared.";
                 msgTimer = 2f;
             } else {
+                Sfx.blip();
                 msgText = "Terminal found — Press E to start mini-game";
                 msgTimer = 6f;
                 awaitingGameStart = true;
@@ -479,12 +501,14 @@ public class RoomScreen implements Screen {
         game.session.roomSearchCount[roomId] = room.searchCount;
         game.session.onSearch(found);
         if (found) {
+            Sfx.tokenFound();
             game.session.miniGameFoundInRoom[roomId] = true;
             msgText = "You found a GLITCH TOKEN! [" + room.name + "] — Press E to start mini-game";
             msgTimer = 6f;
             awaitingGameStart = true;
             pendingGameType   = room.miniGameType;
         } else {
+            Sfx.searchRustle();
             String[] msgs = {"Nothing here.", "Just textbooks.", "Empty drawer.", "Some papers...", "Dust."};
             msgText = msgs[furnitureIdx % msgs.length];
             msgTimer = 1.5f;
@@ -508,6 +532,8 @@ public class RoomScreen implements Screen {
         robotTimer -= delta;
         if (!robotInRoom && robotTimer <= 0f) {
             robotInRoom = true;
+            Sfx.robotEnters();
+            Sfx.startChaseLoop();
             msgText = "ROBOT DETECTED IN ROOM!";
             msgTimer = 3f;
         }
@@ -519,7 +545,14 @@ public class RoomScreen implements Screen {
             float dx = fpX - sweepX, dz = fpZ - sweepZ;
             float dist = (float) Math.sqrt(dx*dx + dz*dz);
             captureCooldown = Math.max(0f, captureCooldown - delta);
+            // Robot servo steps while sweeping the room
+            robotStepTimer -= delta;
+            if (robotStepTimer <= 0f) {
+                Sfx.servoStep();
+                robotStepTimer = 0.4f;
+            }
             if (dist < 1.5f && !hiding && captureCooldown <= 0f) {
+                Sfx.caught();
                 captureFlash = 1f;
                 captureCooldown = 3f; // invulnerability window after capture
                 game.session.onCapture();
@@ -536,6 +569,8 @@ public class RoomScreen implements Screen {
                 robotInRoom = false;
                 robotSweepTime = 0f;
                 robotTimer = 40f;
+                Sfx.stopChaseLoop();
+                Sfx.searchSting();
                 msgText = "Robot left the room.";
                 msgTimer = 2f;
             }
@@ -546,6 +581,7 @@ public class RoomScreen implements Screen {
     }
 
     private void exitRoom() {
+        Sfx.stopChaseLoop();
         Gdx.input.setCursorCatched(false);
         hiding = false;
         game.session.playerHiding = false;

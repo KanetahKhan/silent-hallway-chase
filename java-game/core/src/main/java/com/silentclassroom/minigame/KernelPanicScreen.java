@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.silentclassroom.Sfx;
 import com.silentclassroom.SilentClassroomGame;
 
 /**
@@ -148,9 +149,10 @@ public class KernelPanicScreen implements Screen {
                     // Missed!
                     misses++;
                     combo = 0;
+                    Sfx.breach();
                     emitParticles(laneCenter(i, Gdx.graphics.getWidth()), 140f, 1f, 0.1f, 0.1f, 8);
                     tokenActive[i] = false;
-                    if (misses >= MAX_MISSES) { finished = true; won = false; }
+                    if (misses >= MAX_MISSES) { finished = true; won = false; Sfx.miniGameLose(); }
                 }
             }
         }
@@ -178,6 +180,7 @@ public class KernelPanicScreen implements Screen {
 
     private void fixToken(int lane) {
         if (tokenActive[lane]) {
+            Sfx.hit(combo + 1);
             combo++;
             comboDisplayTimer = 1.5f;
             int pts = 100 * combo + (tokenType[lane] == 1 ? 200 : 0);
@@ -186,7 +189,9 @@ public class KernelPanicScreen implements Screen {
             emitParticles(laneCenter(lane, Gdx.graphics.getWidth()),
                 tokenY[lane] + TOKEN_H / 2, 0.1f, 1f, 0.3f, 12);
             tokenActive[lane] = false;
-            if (fixes >= WIN_FIXES) { finished = true; won = true; }
+            if (fixes >= WIN_FIXES) { finished = true; won = true; Sfx.miniGameWin(); }
+        } else {
+            Sfx.wrongFix();
         }
     }
 

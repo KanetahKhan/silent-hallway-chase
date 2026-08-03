@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.silentclassroom.Sfx;
 import com.silentclassroom.SilentClassroomGame;
 
 /**
@@ -110,7 +111,7 @@ public class SilentCodeScreen implements Screen {
 
         if (!finished) {
             timeUsed += delta;
-            if (timeUsed >= TIME_LIMIT) { finished = true; won = false; }
+            if (timeUsed >= TIME_LIMIT) { finished = true; won = false; Sfx.miniGameLose(); }
             handleInput();
             updateGlitch(delta);
         } else {
@@ -151,6 +152,7 @@ public class SilentCodeScreen implements Screen {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             if (selectedSlot < 0) {
                 // Pick up block
+                Sfx.blip();
                 selectedSlot = cursorPos;
                 emitSparks(cursorPos, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 0.3f, 0.7f, 1f);
             } else {
@@ -162,7 +164,9 @@ public class SilentCodeScreen implements Screen {
                 emitSparks(cursorPos, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 0.5f, 1f, 0.5f);
                 selectedSlot = -1;
                 // Check win
-                if (isSorted()) { finished = true; won = true; }
+                if (isSorted()) { finished = true; won = true; Sfx.miniGameWin(); }
+                else if (arrangement[cursorPos] == cursorPos) Sfx.hit(1);
+                else Sfx.wrongFix();
             }
         }
 
@@ -172,6 +176,7 @@ public class SilentCodeScreen implements Screen {
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            Sfx.breach();
             resetArrangement();
         }
 

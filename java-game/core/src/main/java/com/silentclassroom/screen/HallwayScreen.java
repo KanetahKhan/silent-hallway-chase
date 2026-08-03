@@ -20,6 +20,7 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.silentclassroom.Sfx;
 import com.silentclassroom.SilentClassroomGame;
 import com.silentclassroom.game.Room;
 import com.silentclassroom.game.RobotAI;
@@ -68,6 +69,12 @@ public class HallwayScreen implements Screen {
     private float captureMsgTimer = 0f;
     private float doorPromptAlpha = 0f;
     private float captureCooldown = 0f;
+
+    // Audio state
+    private RobotAI.State prevRobotState = RobotAI.State.PATROL;
+    private float footstepTimer = 0f;
+    private boolean footLeft = false;
+    private float robotStepTimer = 0f;
 
     // Door model references
     private final Model[] doorPanelModels = new Model[7];
@@ -305,19 +312,22 @@ public class HallwayScreen implements Screen {
 
         // Update session timer
         game.session.update(delta);
-        if (game.session.isGameOver()) { game.toGameOver(false); return; }
+        if (game.session.isGameOver()) { Sfx.stopChaseLoop(); Sfx.miniGameLose(); game.toGameOver(false); return; }
 
         // Move player
         updatePlayerMovement(delta);
 
         // Update robot
         robot.update(delta, game.session.playerX, game.session.playerZ, game.session.playerHiding);
+        updateRobotAudio(delta);
 
         // Check capture (with post-capture invulnerability cooldown)
         captureCooldown = Math.max(0f, captureCooldown - delta);
         if (captureCooldown <= 0f
                 && robot.isCatchingPlayer(game.session.playerX, game.session.playerZ, game.session.playerHiding)) {
             game.session.onCapture();
+            Sfx.stopChaseLoop();
+            Sfx.caught();
             captureFlash = 1f;
             captureMsg = "CAUGHT!  -150 pts  -20 sec  HP:" + game.session.hp;
             captureMsgTimer = 2.5f;
@@ -334,6 +344,8 @@ public class HallwayScreen implements Screen {
 
         // Check exit reached
         if (game.session.isWon() && Math.abs(game.session.playerZ + 29f) < 1.5f) {
+            Sfx.stopChaseLoop();
+            Sfx.door();
             game.toGameOver(true);
             return;
         }
@@ -378,6 +390,33 @@ public class HallwayScreen implements Screen {
         renderHUD();
     }
 
+    /** Robot state transition stingers, chase loop, footsteps & servo steps. */
+    private void updateRobotAudio(float delta) {
+        RobotAI.State st = robot.state;
+        if (st != prevRobotState) {
+            switch (st) {
+                case ALERT:  Sfx.alertSting(); break;
+                case CHASE:  Sfx.chaseSting(); Sfx.startChaseLoop(); break;
+                case SEARCH: Sfx.stopChaseLoop(); Sfx.searchSting(); break;
+                case PATROL: Sfx.stopChaseLoop(); break;
+            }
+            prevRobotState = st;
+        }
+
+        // Robot servo steps — faster & louder-feeling cadence while chasing,
+        // only audible when it is reasonably close to the player.
+        float dz = robot.z - game.session.playerZ;
+        float dx = robot.x - game.session.playerX;
+        float dist = (float) Math.sqrt(dx * dx + dz * dz);
+        if (dist < 18f && st != RobotAI.State.SEARCH) {
+            robotStepTimer -= delta;
+            if (robotStepTimer <= 0f) {
+                Sfx.servoStep();
+                robotStepTimer = (st == RobotAI.State.CHASE) ? 0.22f : 0.45f;
+            }
+        }
+    }
+
     private void updatePlayerMovement(float delta) {
         float speed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) ? 8f : 5f;
         float dx = 0f, dz = 0f;
@@ -389,6 +428,18 @@ public class HallwayScreen implements Screen {
         float len = (float) Math.sqrt(dx * dx + dz * dz);
         if (len > 0) { dx /= len; dz /= len; updatePlayerFacing(dx, dz); }
 
+        // Player footsteps (faster cadence while sprinting)
+        if (len > 0) {
+            footstepTimer -= delta;
+            if (footstepTimer <= 0f) {
+                Sfx.footstep(footLeft);
+                footLeft = !footLeft;
+                footstepTimer = speed > 6f ? 0.24f : 0.36f;
+            }
+        } else {
+            footstepTimer = 0f;
+        }
+
         float nx = game.session.playerX + dx * speed * delta;
         float nz = game.session.playerZ + dz * speed * delta;
         game.session.playerX = Math.max(-1.7f, Math.min(1.7f, nx));
@@ -399,6 +450,8 @@ public class HallwayScreen implements Screen {
 
         // Press E to enter nearby room
         if (Gdx.input.isKeyJustPressed(Input.Keys.E) && nearDoorId >= 0) {
+            Sfx.stopChaseLoop();
+            Sfx.door();
             game.toRoom(nearDoorId);
         }
     }
@@ -580,6 +633,7 @@ public class HallwayScreen implements Screen {
 
     @Override
     public void dispose() {
+        Sfx.stopChaseLoop();
         modelBatch.dispose();
         shape.dispose();
         for (Model m : ownedModels) m.dispose();

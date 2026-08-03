@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.silentclassroom.Sfx;
 import com.silentclassroom.SilentClassroomGame;
 
 /**
@@ -105,7 +106,7 @@ public class CircuitBreakerScreen implements Screen {
 
         if (!finished) {
             timeUsed += delta;
-            if (timeUsed >= timeLimit) { finished = true; won = false; }
+            if (timeUsed >= timeLimit) { finished = true; won = false; Sfx.miniGameLose(); }
             handleInput();
         } else {
             finishTimer += delta;
@@ -161,6 +162,7 @@ public class CircuitBreakerScreen implements Screen {
         // SPACE = toggle selection (start drawing path)
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             if (!selecting) {
+                Sfx.blip();
                 selecting = true;
                 selStartX = cursorX;
                 selStartY = cursorY;
@@ -170,12 +172,14 @@ public class CircuitBreakerScreen implements Screen {
                 pathLen++;
             } else {
                 selecting = false;
-                checkWin();
+                boolean wasWon = checkWin();
+                if (wasWon) Sfx.miniGameWin();
+                else        Sfx.wrongFix();
             }
         }
 
         // R = reset all wires
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) resetWires();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) { Sfx.breach(); resetWires(); }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { endGame(); }
     }
 
@@ -198,9 +202,9 @@ public class CircuitBreakerScreen implements Screen {
         selecting = false; pathLen = 0; connectedCount = 0;
     }
 
-    private void checkWin() {
+    private boolean checkWin() {
         // Check if the drawn path visits all required nodes in order
-        if (pathLen < requiredLen) return;
+        if (pathLen < requiredLen) return false;
         connectedCount = 0;
         int reqIdx = 0;
         for (int p = 0; p < pathLen && reqIdx < requiredLen; p++) {
@@ -209,7 +213,8 @@ public class CircuitBreakerScreen implements Screen {
                 connectedCount++;
             }
         }
-        if (reqIdx == requiredLen) { finished = true; won = true; }
+        if (reqIdx == requiredLen) { finished = true; won = true; return true; }
+        return false;
     }
 
     // ─────────────────────────── PARTICLES ───────────────────────────────────
