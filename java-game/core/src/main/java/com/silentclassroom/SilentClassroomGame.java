@@ -18,9 +18,11 @@ public class SilentClassroomGame extends Game {
     public BitmapFont font;
     public BitmapFont bigFont;
     public GameSession session;
+    public GameAssets assets;
 
     @Override
     public void create() {
+        assets = new GameAssets();
         batch = new SpriteBatch();
         font = new BitmapFont();
         font.getData().setScale(1.4f);
@@ -71,5 +73,6 @@ public class SilentClassroomGame extends Game {
         batch.dispose();
         font.dispose();
         bigFont.dispose();
+        assets.dispose();
     }
 }

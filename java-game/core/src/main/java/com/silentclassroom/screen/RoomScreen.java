@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.environment.PointLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
@@ -147,28 +148,10 @@ public class RoomScreen implements Screen {
         long attr = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal;
         boolean isLab = room.type == Room.Type.LAB;
 
-        // ── Floor ──
-        Color floorCol = isLab
-            ? new Color(0.18f, 0.2f, 0.22f, 1f)
-            : new Color(0.52f, 0.45f, 0.36f, 1f);
-        addBox(mb, attr, ROOM_W, 0.08f, ROOM_D, floorCol, 0f, -0.04f, 0f);
-
-        // Floor tiles
-        if (!isLab) {
-            Color tc = new Color(0.62f, 0.54f, 0.44f, 1f);
-            for (int r = -4; r < 4; r++) for (int c = -4; c < 4; c++) {
-                if ((Math.abs(r) + Math.abs(c)) % 2 == 0) {
-                    addBox(mb, attr, 0.97f, 0.01f, 0.97f, tc, c + 0.5f, 0.01f, r + 0.5f);
-                }
-            }
-        } else {
-            // Lab: checker tiles
-            Color lc1 = new Color(0.12f, 0.14f, 0.16f, 1f);
-            Color lc2 = new Color(0.2f, 0.22f, 0.25f, 1f);
-            for (int r = -4; r < 4; r++) for (int c = -4; c < 4; c++) {
-                addBox(mb, attr, 0.97f, 0.01f, 0.97f, ((r+c)%2==0?lc1:lc2), c+0.5f, 0.01f, r+0.5f);
-            }
-        }
+        // ── Floor (original classroom / ICT-lab tileset textures) ──
+        addTexturedBox(mb, ROOM_W, 0.08f, ROOM_D,
+            isLab ? "lab-floor" : "class-floor", ROOM_W, ROOM_D,
+            0f, -0.04f, 0f);
 
         // ── Ceiling ──
         Color ceilCol = isLab
@@ -179,31 +162,33 @@ public class RoomScreen implements Screen {
         // ── Ceiling light panel ──
         addBox(mb, attr, 1.2f, 0.04f, 0.5f, new Color(0.95f, 0.95f, 1f, 1f), 0f, ROOM_H - 0.02f, 0f);
 
-        // ── Walls ──
-        Color wallCol = isLab
-            ? new Color(0.3f, 0.32f, 0.36f, 1f)
-            : new Color(0.75f, 0.78f, 0.72f, 1f);
+        // ── Walls (original brick tileset) ──
+        String wallTile = isLab ? "hall-brick" : "class-brick";
         // North wall (board side)
-        addBox(mb, attr, ROOM_W, ROOM_H, 0.12f, wallCol, 0f, ROOM_H/2f, -ROOM_D/2f - 0.06f);
+        addTexturedBox(mb, ROOM_W, ROOM_H, 0.12f, wallTile, ROOM_W, ROOM_H,
+            0f, ROOM_H/2f, -ROOM_D/2f - 0.06f);
         // South wall (door side)
-        addBox(mb, attr, ROOM_W, ROOM_H, 0.12f, wallCol, 0f, ROOM_H/2f,  ROOM_D/2f + 0.06f);
+        addTexturedBox(mb, ROOM_W, ROOM_H, 0.12f, wallTile, ROOM_W, ROOM_H,
+            0f, ROOM_H/2f,  ROOM_D/2f + 0.06f);
         // Left wall
-        addBox(mb, attr, 0.12f, ROOM_H, ROOM_D, wallCol, -ROOM_W/2f - 0.06f, ROOM_H/2f, 0f);
+        addTexturedBox(mb, 0.12f, ROOM_H, ROOM_D, wallTile, ROOM_D, ROOM_H,
+            -ROOM_W/2f - 0.06f, ROOM_H/2f, 0f);
         // Right wall
-        addBox(mb, attr, 0.12f, ROOM_H, ROOM_D, wallCol,  ROOM_W/2f + 0.06f, ROOM_H/2f, 0f);
+        addTexturedBox(mb, 0.12f, ROOM_H, ROOM_D, wallTile, ROOM_D, ROOM_H,
+             ROOM_W/2f + 0.06f, ROOM_H/2f, 0f);
 
-        // ── Board / front display ──
+        // ── Board / front display (original board artwork) ──
         if (!isLab) {
-            // Classroom: green blackboard
-            addBox(mb, attr, ROOM_W - 1.5f, 1.4f, 0.06f,
-                new Color(0.1f, 0.38f, 0.14f, 1f), 0f, 2f, -ROOM_D/2f + 0.04f);
+            // Classroom: green blackboard art from tileset
+            addTexturedBox(mb, ROOM_W - 1.5f, 1.4f, 0.06f, "greenboard", 1f, 1f,
+                0f, 2f, -ROOM_D/2f + 0.04f);
             // Board trim
             addBox(mb, attr, ROOM_W - 1.5f, 0.08f, 0.08f,
                 new Color(0.5f, 0.35f, 0.18f, 1f), 0f, 1.25f, -ROOM_D/2f + 0.06f);
         } else {
-            // Lab: whiteboard
-            addBox(mb, attr, ROOM_W - 1.5f, 1.2f, 0.06f,
-                new Color(0.92f, 0.92f, 0.95f, 1f), 0f, 2f, -ROOM_D/2f + 0.04f);
+            // Lab: whiteboard art from ICT lab tileset
+            addTexturedBox(mb, ROOM_W - 1.5f, 1.2f, 0.06f, "whiteboard", 1f, 1f,
+                0f, 2f, -ROOM_D/2f + 0.04f);
         }
 
         // ── Teacher/Instructor desk at front ──
@@ -255,16 +240,28 @@ public class RoomScreen implements Screen {
             }
         }
 
-        // ── Door indicator (where player entered) ──
-        addBox(mb, attr, 1.3f, 2.3f, 0.08f,
-            new Color(0.25f, 0.4f, 0.65f, 1f), 0f, 1.15f, ROOM_D / 2f - 0.04f);
+        // ── Door indicator (original door artwork, where player entered) ──
+        addTexturedBox(mb, 1.3f, 2.3f, 0.08f, "door", 1f, 1f,
+            0f, 1.15f, ROOM_D / 2f - 0.04f);
 
-        // ── Robot (initially outside) ──
-        robotModel = mb.createBox(0.55f, 1.8f, 0.45f,
-            new Material(ColorAttribute.createDiffuse(0.08f, 0.08f, 0.1f, 1f)), attr);
+        // ── Robot: kernel-panic boss artwork billboard (initially outside) ──
+        robotModel = game.assets.spriteQuad(mb, 1.5f, 1.9f,
+            game.assets.spriteMaterial(game.assets.robot()));
         ownedModels.add(robotModel);
         robotInst = new ModelInstance(robotModel);
-        robotInst.transform.setToTranslation(0f, 0.9f, 8f); // off-screen initially
+        robotInst.transform.setToTranslation(0f, 0.02f, 8f); // off-screen initially
+    }
+
+    /** Helper: create and add a static box textured with original tileset art. */
+    private void addTexturedBox(ModelBuilder mb, float w, float h, float d,
+                                String tileName, float repU, float repV,
+                                float x, float y, float z) {
+        Model m = game.assets.texturedBox(mb, w, h, d,
+            game.assets.texturedMaterial(game.assets.tile(tileName)), repU, repV);
+        ownedModels.add(m);
+        ModelInstance inst = new ModelInstance(m);
+        inst.transform.setToTranslation(x, y, z);
+        instances.add(inst);
     }
 
     /** Helper: create and add a static box. */
@@ -280,8 +277,12 @@ public class RoomScreen implements Screen {
     /** Helper: add a desk at (x,z) with legs. */
     private void addDesk(ModelBuilder mb, long attr, float x, float z,
                           boolean isLab, Color topColor) {
-        // Top surface
-        Model topM = mb.createBox(1.6f, 0.08f, 0.9f, new Material(ColorAttribute.createDiffuse(topColor)), attr);
+        // Top surface (original wood artwork)
+        Model topM = mb.createBox(1.6f, 0.08f, 0.9f,
+            new Material(
+                TextureAttribute.createDiffuse(game.assets.tile("wood")),
+                ColorAttribute.createDiffuse(topColor)),
+            attr | VertexAttributes.Usage.TextureCoordinates);
         ownedModels.add(topM);
         ModelInstance top = new ModelInstance(topM);
         top.transform.setToTranslation(x, 0.8f, z);
@@ -308,8 +309,12 @@ public class RoomScreen implements Screen {
         furnitureName[idx] = name;
         furnitureCount++;
 
-        // Top
-        Model topM = mb.createBox(1.5f, 0.09f, 0.85f, new Material(ColorAttribute.createDiffuse(topColor)), attr);
+        // Top (original wood artwork, tinted per room type)
+        Model topM = mb.createBox(1.5f, 0.09f, 0.85f,
+            new Material(
+                TextureAttribute.createDiffuse(game.assets.tile("wood")),
+                ColorAttribute.createDiffuse(topColor)),
+            attr | VertexAttributes.Usage.TextureCoordinates);
         ownedModels.add(topM);
         ModelInstance topInst = new ModelInstance(topM);
         topInst.transform.setToTranslation(x, 0.8f, z);
@@ -368,7 +373,10 @@ public class RoomScreen implements Screen {
         if (robotInRoom) {
             float sweepX = (float) Math.sin(robotSweepTime * 1.1f) * 2.5f;
             float sweepZ = (float) Math.cos(robotSweepTime * 0.7f) * 2.0f;
-            robotInst.transform.setToTranslation(sweepX, 0.9f, sweepZ);
+            // Sprite quad is anchored at its base; keep it facing the player
+            robotInst.transform.setToTranslation(sweepX, 0.02f, sweepZ);
+            robotInst.transform.rotate(Vector3.Y,
+                MathUtils.atan2(fpX - sweepX, fpZ - sweepZ) * MathUtils.radiansToDegrees);
         }
 
         // ── Render 3D ──

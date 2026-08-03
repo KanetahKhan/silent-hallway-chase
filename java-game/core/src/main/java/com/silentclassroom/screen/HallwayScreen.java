@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.environment.PointLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
@@ -52,6 +53,7 @@ public class HallwayScreen implements Screen {
     private Model playerModel;
     private Model robotBodyModel;
     private Model robotEyeModel;
+    private String playerFacing = "south";
 
     // 2D HUD
     private ShapeRenderer shape;
@@ -125,9 +127,9 @@ public class HallwayScreen implements Screen {
 
         long attr = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal;
 
-        // ── Floor ──
-        Model floorM = mb.createBox(4f, 0.1f, HALL_LEN,
-            new Material(ColorAttribute.createDiffuse(0.22f, 0.22f, 0.25f, 1f)), attr);
+        // ── Floor (original school tileset texture) ──
+        Model floorM = game.assets.texturedBox(mb, 4f, 0.1f, HALL_LEN,
+            game.assets.texturedMaterial(game.assets.tile("hall-floor")), 4f, HALL_LEN);
         ownedModels.add(floorM);
         ModelInstance floorInst = new ModelInstance(floorM);
         floorInst.transform.setToTranslation(0f, -0.05f, 0f);
@@ -154,50 +156,42 @@ public class HallwayScreen implements Screen {
         // ── Walls (segmented to allow door openings) ──
         buildSegmentedWalls(mb, attr);
 
-        // ── End caps ──
-        Model northWallM = mb.createBox(4.4f, CEIL_H, 0.2f,
-            new Material(ColorAttribute.createDiffuse(0.4f, 0.4f, 0.5f, 1f)), attr);
+        // ── End caps (brick from original tileset) ──
+        Model northWallM = game.assets.texturedBox(mb, 4.4f, CEIL_H, 0.2f,
+            game.assets.texturedMaterial(game.assets.tile("hall-brick")), 4.4f, CEIL_H);
         ownedModels.add(northWallM);
         ModelInstance nw = new ModelInstance(northWallM);
         nw.transform.setToTranslation(0f, CEIL_H / 2f, -HALL_LEN / 2f - 0.1f);
         staticInstances.add(nw);
 
-        Model southWallM = mb.createBox(4.4f, CEIL_H, 0.2f,
-            new Material(ColorAttribute.createDiffuse(0.4f, 0.4f, 0.5f, 1f)), attr);
+        Model southWallM = game.assets.texturedBox(mb, 4.4f, CEIL_H, 0.2f,
+            game.assets.texturedMaterial(game.assets.tile("hall-brick")), 4.4f, CEIL_H);
         ownedModels.add(southWallM);
         ModelInstance sw = new ModelInstance(southWallM);
         sw.transform.setToTranslation(0f, CEIL_H / 2f, HALL_LEN / 2f + 0.1f);
         staticInstances.add(sw);
 
-        // ── Exit door (north, gold) ──
+        // ── Exit door (north, original door art with gold tint) ──
         Model exitM = mb.createBox(1.4f, DOOR_H, 0.15f,
-            new Material(ColorAttribute.createDiffuse(0.7f, 0.55f, 0.1f, 1f)), attr);
+            new Material(
+                TextureAttribute.createDiffuse(game.assets.tile("door")),
+                ColorAttribute.createDiffuse(1f, 0.85f, 0.4f, 1f)),
+            attr | VertexAttributes.Usage.TextureCoordinates);
         ownedModels.add(exitM);
         ModelInstance exitInst = new ModelInstance(exitM);
         exitInst.transform.setToTranslation(0f, DOOR_H / 2f, -HALL_LEN / 2f + 0.05f);
         staticInstances.add(exitInst);
 
-        // ── Floor tiles (decorative) ──
-        Model tileM = mb.createBox(0.98f, 0.01f, 0.98f,
-            new Material(ColorAttribute.createDiffuse(0.18f, 0.18f, 0.2f, 1f)), attr);
-        ownedModels.add(tileM);
-        for (int row = -29; row < 30; row++) {
-            for (int col = -1; col <= 1; col++) {
-                if ((Math.abs(row) + Math.abs(col)) % 2 == 0) {
-                    ModelInstance tile = new ModelInstance(tileM);
-                    tile.transform.setToTranslation(col * 1f, 0.01f, row + 0.5f);
-                    staticInstances.add(tile);
-                }
-            }
-        }
-
-        // ── Door panels (7 rooms) ──
+        // ── Door panels (7 rooms, original door artwork) ──
         for (int i = 0; i < 7; i++) {
             Color col = (i < 4)
-                ? new Color(0.2f, 0.35f, 0.65f, 1f)  // classroom: blue
-                : new Color(0.35f, 0.2f, 0.65f, 1f); // lab: purple
+                ? new Color(0.75f, 0.8f, 1f, 1f)   // classroom: cool tint
+                : new Color(0.85f, 0.75f, 1f, 1f); // lab: purple tint
             Model doorM = mb.createBox(0.12f, DOOR_H, DOOR_W,
-                new Material(ColorAttribute.createDiffuse(col)), attr);
+                new Material(
+                    TextureAttribute.createDiffuse(game.assets.tile("door")),
+                    ColorAttribute.createDiffuse(col)),
+                attr | VertexAttributes.Usage.TextureCoordinates);
             doorPanelModels[i] = doorM;
             ownedModels.add(doorM);
             ModelInstance di = new ModelInstance(doorM);
@@ -217,15 +211,15 @@ public class HallwayScreen implements Screen {
             staticInstances.add(ar);
         }
 
-        // ── Player model ──
-        playerModel = mb.createBox(0.5f, 1.8f, 0.4f,
-            new Material(ColorAttribute.createDiffuse(0.1f, 0.8f, 0.2f, 1f)), attr);
+        // ── Player: Ayan sprite billboard (original vp_game character art) ──
+        playerModel = game.assets.spriteQuad(mb, 1.3f, 1.9f,
+            game.assets.spriteMaterial(game.assets.ayan("south")));
         ownedModels.add(playerModel);
         playerInst = new ModelInstance(playerModel);
 
-        // ── Robot body ──
-        robotBodyModel = mb.createBox(0.55f, 1.8f, 0.45f,
-            new Material(ColorAttribute.createDiffuse(0.08f, 0.08f, 0.1f, 1f)), attr);
+        // ── Robot: kernel-panic boss artwork billboard ──
+        robotBodyModel = game.assets.spriteQuad(mb, 1.5f, 1.9f,
+            game.assets.spriteMaterial(game.assets.robot()));
         ownedModels.add(robotBodyModel);
         robotBodyInst = new ModelInstance(robotBodyModel);
 
@@ -272,8 +266,9 @@ public class HallwayScreen implements Screen {
             float z1 = zBoundaries[seg + 1];
             float len = z1 - z0;
             if (len < 0.01f) continue;
-            Model segM = mb.createBox(0.2f, CEIL_H, len,
-                new Material(ColorAttribute.createDiffuse(wallColor)), attr);
+            Model segM = game.assets.texturedBox(mb, 0.2f, CEIL_H, len,
+                game.assets.texturedMaterial(game.assets.tile("hall-brick")),
+                len, CEIL_H);
             ownedModels.add(segM);
             ModelInstance si = new ModelInstance(segM);
             si.transform.setToTranslation(wallX, CEIL_H / 2f, (z0 + z1) / 2f);
@@ -343,24 +338,23 @@ public class HallwayScreen implements Screen {
             return;
         }
 
-        // Update model positions
-        playerInst.transform.setToTranslation(game.session.playerX, 0.9f, game.session.playerZ);
-        float ry = game.session.playerZ < 0 ? -2f : 2f; // slight tilt direction indicator
-        robotBodyInst.transform.setToTranslation(robot.x, 0.9f, robot.z);
+        // Update model positions (sprite quads are anchored at their base)
+        playerInst.transform.setToTranslation(game.session.playerX, 0.02f, game.session.playerZ);
+        robotBodyInst.transform.setToTranslation(robot.x, 0.02f, robot.z);
         robotEyeInst.transform.setToTranslation(robot.x + (robot.facingDir * 0.25f), 1.5f, robot.z - 0.24f);
         updateCamera();
 
-        // Update door panel colours (highlight nearby)
+        // Update door panel tint (highlight nearby)
         for (int i = 0; i < 7; i++) {
             boolean near = (i == nearDoorId);
-            float brightness = near ? 1f : 0.5f;
+            float brightness = near ? 1.25f : 0.7f;
             boolean isClass = i < 4;
             ((ColorAttribute) doorPanelModels[i].materials.first()
                 .get(ColorAttribute.Diffuse))
                 .color.set(
-                    isClass ? 0.2f * brightness : 0.45f * brightness,
-                    0.1f * brightness,
-                    isClass ? 0.8f * brightness : 0.9f * brightness,
+                    (isClass ? 0.75f : 0.85f) * brightness,
+                    (isClass ? 0.8f : 0.75f) * brightness,
+                    1f * brightness,
                     1f);
         }
 
@@ -393,7 +387,7 @@ public class HallwayScreen implements Screen {
         if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) dx += 1f;
 
         float len = (float) Math.sqrt(dx * dx + dz * dz);
-        if (len > 0) { dx /= len; dz /= len; }
+        if (len > 0) { dx /= len; dz /= len; updatePlayerFacing(dx, dz); }
 
         float nx = game.session.playerX + dx * speed * delta;
         float nz = game.session.playerZ + dz * speed * delta;
@@ -407,6 +401,17 @@ public class HallwayScreen implements Screen {
         if (Gdx.input.isKeyJustPressed(Input.Keys.E) && nearDoorId >= 0) {
             game.toRoom(nearDoorId);
         }
+    }
+
+    /** Swap the Ayan sprite to match the movement direction (8-way art). */
+    private void updatePlayerFacing(float dx, float dz) {
+        String ns = dz < -0.35f ? "north" : (dz > 0.35f ? "south" : "");
+        String ew = dx >  0.35f ? "east"  : (dx < -0.35f ? "west"  : "");
+        String dir = ns.isEmpty() ? ew : (ew.isEmpty() ? ns : ns + "-" + ew);
+        if (dir.isEmpty() || dir.equals(playerFacing)) return;
+        playerFacing = dir;
+        playerModel.materials.first().set(
+            TextureAttribute.createDiffuse(game.assets.ayan(dir)));
     }
 
     private void scanNearby() {

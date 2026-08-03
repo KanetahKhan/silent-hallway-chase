@@ -1,1 +1,2 @@
 - [Java game build](java-game-build.md) — Silent Classroom is a Gradle/LibGDX desktop app in java-game/; it can't run in Replit preview (needs OpenGL display), only build the JAR.
+- [vp_game art pipeline](vp-game-art-pipeline.md) — original 2D sprites/tilesets are cropped into java-game/assets/textures and applied as 3D textures via GameAssets; billboard quads anchor at base.
