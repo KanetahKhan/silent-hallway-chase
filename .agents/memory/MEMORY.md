@@ -1,0 +1,1 @@
+- [Java game build](java-game-build.md) — Silent Classroom is a Gradle/LibGDX desktop app in java-game/; it can't run in Replit preview (needs OpenGL display), only build the JAR.

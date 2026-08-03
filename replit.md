@@ -1,45 +1,94 @@
-# [Project name]
+# Silent Classroom
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A 3D stealth/escape game in Java (LibGDX). You play as Ayan navigating a 7-room school building — 4 classrooms and 3 labs — while an AI sentinel robot chases you. Find 3 hidden mini-games across the rooms, complete them to collect Glitch Tokens, then escape.
 
-## Run & Operate
+## Run & Build
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+**Build the JAR:**
+```bash
+cd java-game && ./gradlew :lwjgl3:jar
+```
+Output: `java-game/lwjgl3/build/libs/silent-classroom.jar`
 
-## Stack
+**Run locally (requires Java 11+):**
+```bash
+java -jar java-game/lwjgl3/build/libs/silent-classroom.jar
+```
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+## Game Stack
+
+- **Engine**: LibGDX 1.14.2 + LWJGL3 (desktop)
+- **Language**: Java 11+ (compiled with GraalVM 22.3)
+- **3D Rendering**: LibGDX ModelBatch + ModelBuilder (procedural geometry)
+- **Build**: Gradle 9.6.1 (Kotlin/Groovy DSL)
+
+## Game Architecture
+
+### Screens
+- `MainMenuScreen` — animated grid title screen
+- `HallwayScreen` — **top-down 3D** corridor: 7 doors, WASD movement, robot AI
+- `RoomScreen` — **first-person 3D**: furniture search, hide mechanic, mouse look
+- `KernelPanicScreen` — CRT terminal mini-game (Kernel Panic, 4 lanes, Q/W/E/R/SPACE)
+- `CircuitBreakerScreen` — holographic circuit puzzle (arrow keys + SPACE)
+- `SilentCodeScreen` — holographic code-block sorting puzzle (arrow keys + ENTER)
+- `GameOverScreen` — score, grade, win/lose result
+
+### Game Logic (java-game/core/src/main/java/com/silentclassroom/game/)
+- `GameSession.java` — 9-minute countdown, score, HP (3 lives), token tracking, mini-game assignment
+- `RobotAI.java` — FSM sentinel: PATROL → ALERT → CHASE → SEARCH
+- `Room.java` — room metadata, furniture slots, mini-game assignment
+
+### Mini-Games (redesigned for 3D immersion)
+1. **Kernel Panic** — falling glitch tokens in 4 lanes on a CRT terminal. Select lane Q/W/E/R, fix with SPACE. Win: 20 fixes.
+2. **Circuit Breaker** — neon circuit-board path-tracing puzzle. Arrow keys move cursor, SPACE draw wire. Win: trace correct path.
+3. **Silent Code** — holographic floating code blocks scrambled. Arrow keys + ENTER swap blocks into correct logical order.
+
+### Controls
+**Hallway**:  WASD move, SHIFT sprint, E enter room, F toggle hide
+
+**Room**: WASD+mouse look, E search furniture, F hide under desk, ESC exit room
+
+**Mini-games**: Game-specific (shown on HUD), ESC to quit
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+```
+java-game/
+├── core/src/main/java/com/silentclassroom/
+│   ├── SilentClassroomGame.java         # main Game class, screen router
+│   ├── game/GameSession.java            # timer, score, state (from SilentClassroomSession)
+│   ├── game/RobotAI.java                # FSM AI (from SentinelController)
+│   ├── game/Room.java                   # room metadata
+│   ├── screen/HallwayScreen.java        # top-down 3D hallway (main screen)
+│   ├── screen/RoomScreen.java           # first-person 3D room
+│   ├── screen/MainMenuScreen.java
+│   ├── screen/GameOverScreen.java
+│   ├── minigame/KernelPanicScreen.java
+│   ├── minigame/CircuitBreakerScreen.java
+│   └── minigame/SilentCodeScreen.java
+└── lwjgl3/                              # desktop launcher
+```
 
-## Architecture decisions
+## Architecture Decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
+- **Procedural geometry**: No external 3D assets. All models built from `ModelBuilder.createBox()` with materials/colours for reliable cross-platform builds.
+- **Screen-per-state**: Each major state is a LibGDX Screen. Transition is a simple `game.setScreen(new XxxScreen(game))`.
+- **Shared session**: `GameSession` lives on `SilentClassroomGame` and is passed by reference — all screens share the same mutable state.
+- **2D HUD over 3D**: `SpriteBatch`/`ShapeRenderer` drawn after the `ModelBatch` pass for all UI elements.
+- **Java 11 target**: Compiled to Java 11 bytecode for broadest compatibility, even though GraalVM 22.3 (Java 19) is the runtime.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Game backend must be Java
+- Mini-games redesigned for 3D immersion (not reused from 2D FXGL version)
+- Hallway: top-down 3D view; Rooms: first-person 3D view
+- 7 rooms: 4 classrooms + 3 labs
+- 3 randomly assigned mini-games hidden per run
+- Robot AI chases player; player can hide under furniture
+- 9-minute timer (from SilentClassroomSession)
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Original 2D game (FXGL/JavaFX): `extracted/vp_game/vp_game/override-game/`
+- 3D conversion design docs: `extracted/convert_3d/` (HTML + Three.js prototype)
+- Existing game assets/sprites: `extracted/vp_game/vp_game/override-game/src/main/resources/`

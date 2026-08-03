@@ -1,0 +1,29 @@
+apply plugin: 'application'
+
+sourceSets.main.resources.srcDirs += [rootProject.file('assets').path]
+application.mainClass = 'com.silentclassroom.lwjgl3.Lwjgl3Launcher'
+application.applicationName = 'silent-classroom'
+java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
+
+dependencies {
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    implementation project(':core')
+}
+
+jar {
+    dependsOn ':core:jar'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = 'silent-classroom.jar'
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+    manifest {
+        attributes 'Main-Class': 'com.silentclassroom.lwjgl3.Lwjgl3Launcher'
+    }
+}
+
+tasks.register('dist') { dependsOn 'jar' }

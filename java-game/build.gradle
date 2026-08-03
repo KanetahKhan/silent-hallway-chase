@@ -1,0 +1,26 @@
+allprojects {
+    repositories {
+        mavenCentral()
+        maven { url = 'https://jitpack.io' }
+    }
+}
+
+configure(subprojects) {
+    apply plugin: 'java-library'
+    java.sourceCompatibility = JavaVersion.VERSION_11
+    java.targetCompatibility = JavaVersion.VERSION_11
+
+    compileJava {
+        options.incremental = true
+        options.encoding = 'UTF-8'
+    }
+}
+
+subprojects {
+    version = "$projectVersion"
+    ext.appName = 'silent-classroom'
+    repositories {
+        mavenCentral()
+        maven { url = 'https://jitpack.io' }
+    }
+}
