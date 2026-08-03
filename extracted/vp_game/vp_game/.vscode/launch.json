@@ -1,0 +1,39 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}",
+            "console": "internalConsole"
+        },
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "com.override.Main",
+            "projectName": "override-game",
+            "console": "internalConsole",
+            "shortenCommandLine": "argfile"
+        },
+        {
+            "type": "java",
+            "name": "KernelPanicDemo",
+            "request": "launch",
+            "mainClass": "com.override.game.minigames.KernelPanicDemo",
+            "projectName": "override-game",
+            "console": "internalConsole",
+            "shortenCommandLine": "argfile"
+        },
+        {
+            "type": "java",
+            "name": "SilentClassroomPrototypeApp",
+            "request": "launch",
+            "mainClass": "com.override.prototype.SilentClassroomPrototypeApp",
+            "projectName": "override-game",
+            "console": "internalConsole",
+            "shortenCommandLine": "argfile"
+        }
+    ]
+}

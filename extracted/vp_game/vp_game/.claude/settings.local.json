@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(java -version)",
+      "Bash(mvn -version)",
+      "Bash(grep -E \"\\(^target/|/target/|\\\\.mv\\\\.db$\\)\")",
+      "Bash(mvn -q -DskipTests compile)",
+      "Bash(echo \"FRONTEND_COMPILE_EXIT=$?\")",
+      "Bash(echo \"rm exit=$?\")",
+      "Bash(grep -E \"\\(^target/|/target/|\\\\.mv\\\\.db$|^\\\\.idea/\\)\")",
+      "Bash(grep -E \"^[^/]+$|^backend/[^/]+$\")",
+      "Bash(git push *)"
+    ]
+  }
+}
