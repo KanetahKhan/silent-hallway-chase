@@ -54,6 +54,11 @@ public class GameAssets implements Disposable {
         return get("textures/ayan/walk/" + dir + "_" + cycle[frame % 4] + ".png");
     }
 
+    /** Crouching pose (used while hiding under furniture) for a direction. */
+    public Texture ayanCrouch(String dir) {
+        return get("textures/ayan/crouch/" + dir + ".png");
+    }
+
     public Texture robot() {
         return get("textures/robot.png");
     }

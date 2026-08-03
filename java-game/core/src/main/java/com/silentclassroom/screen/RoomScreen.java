@@ -57,6 +57,11 @@ public class RoomScreen implements Screen {
     private int furnitureCount = 0;
     private ModelInstance[] furnitureInsts;
 
+    // Crouching Ayan sprite (shown while hiding under furniture)
+    private ModelInstance crouchInst;
+    private Model crouchModel;
+    private String crouchDir = "south";
+
     // Robot intruder
     private ModelInstance robotInst;
     private Model robotModel;
@@ -128,9 +133,21 @@ public class RoomScreen implements Screen {
     }
 
     private void updateCamera() {
-        camera.position.set(fpX, camY, fpZ);
         float rad = MathUtils.degreesToRadians * yaw;
-        camera.direction.set(MathUtils.sin(rad), 0f, -MathUtils.cos(rad));
+        float dirX = MathUtils.sin(rad);
+        float dirZ = -MathUtils.cos(rad);
+        if (hiding) {
+            // Pull the camera back and up so Ayan's crouching sprite is visible
+            float cx = MathUtils.clamp(fpX - dirX * 2.2f, -ROOM_W/2f + 0.3f, ROOM_W/2f - 0.3f);
+            float cz = MathUtils.clamp(fpZ - dirZ * 2.2f, -ROOM_D/2f + 0.3f, ROOM_D/2f - 0.3f);
+            camera.position.set(cx, camY + 0.9f, cz);
+            camera.direction.set(fpX - camera.position.x,
+                                 0.55f - camera.position.y,
+                                 fpZ - camera.position.z).nor();
+        } else {
+            camera.position.set(fpX, camY, fpZ);
+            camera.direction.set(dirX, 0f, dirZ);
+        }
         camera.up.set(0f, 1f, 0f);
         camera.update();
     }
@@ -259,6 +276,12 @@ public class RoomScreen implements Screen {
         ownedModels.add(robotModel);
         robotInst = new ModelInstance(robotModel);
         robotInst.transform.setToTranslation(0f, 0.02f, 8f); // off-screen initially
+
+        // ── Ayan crouching billboard (original vp_game crouch art, shown while hiding) ──
+        crouchModel = game.assets.spriteQuad(mb, 0.9f, 1.05f,
+            game.assets.spriteMaterial(game.assets.ayanCrouch(crouchDir)));
+        ownedModels.add(crouchModel);
+        crouchInst = new ModelInstance(crouchModel);
     }
 
     /** Helper: create and add a static box textured with original tileset art. */
@@ -400,9 +423,19 @@ public class RoomScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 
+        // Crouching Ayan sprite while hiding (billboard facing the camera)
+        if (hiding) {
+            updateCrouchSprite();
+            crouchInst.transform.setToTranslation(fpX, 0.02f, fpZ);
+            crouchInst.transform.rotate(Vector3.Y,
+                MathUtils.atan2(camera.position.x - fpX, camera.position.z - fpZ)
+                    * MathUtils.radiansToDegrees);
+        }
+
         modelBatch.begin(camera);
         for (ModelInstance inst : instances) modelBatch.render(inst, environment);
         if (robotInRoom) modelBatch.render(robotInst, environment);
+        if (hiding) modelBatch.render(crouchInst, environment);
         modelBatch.end();
 
         renderHUD();
@@ -524,6 +557,16 @@ public class RoomScreen implements Screen {
             msgText = msgs[furnitureIdx % msgs.length];
             msgTimer = 1.5f;
         }
+    }
+
+    /** Swap the crouch billboard texture to match the player's facing (8-way). */
+    private void updateCrouchSprite() {
+        int idx = Math.round(yaw / 45f) & 7; // two's complement keeps negatives in 0..7
+        String dir = com.silentclassroom.GameAssets.AYAN_DIRS[idx];
+        if (dir.equals(crouchDir)) return;
+        crouchDir = dir;
+        crouchInst.materials.first().set(TextureAttribute.createDiffuse(
+            game.assets.ayanCrouch(crouchDir)));
     }
 
     /** Find the furniture index within interaction range, or -1. */
