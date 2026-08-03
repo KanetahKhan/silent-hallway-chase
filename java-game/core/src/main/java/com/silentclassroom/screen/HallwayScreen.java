@@ -55,6 +55,9 @@ public class HallwayScreen implements Screen {
     private Model robotBodyModel;
     private Model robotEyeModel;
     private String playerFacing = "south";
+    private float walkAnimTime = 0f;
+    private boolean playerMoving = false;
+    private int currentWalkFrame = -1; // -1 = idle frame
 
     // 2D HUD
     private ShapeRenderer shape;
@@ -428,6 +431,15 @@ public class HallwayScreen implements Screen {
         float len = (float) Math.sqrt(dx * dx + dz * dz);
         if (len > 0) { dx /= len; dz /= len; updatePlayerFacing(dx, dz); }
 
+        // Walk-cycle animation: cycle frames while moving, standing frame when idle
+        playerMoving = len > 0;
+        if (playerMoving) {
+            walkAnimTime += delta * (speed > 6f ? 10f : 7f); // frames per second
+        } else {
+            walkAnimTime = 0f;
+        }
+        updatePlayerSprite();
+
         // Player footsteps (faster cadence while sprinting)
         if (len > 0) {
             footstepTimer -= delta;
@@ -456,15 +468,26 @@ public class HallwayScreen implements Screen {
         }
     }
 
-    /** Swap the Ayan sprite to match the movement direction (8-way art). */
+    /** Track the movement direction for the 8-way sprite art. */
     private void updatePlayerFacing(float dx, float dz) {
         String ns = dz < -0.35f ? "north" : (dz > 0.35f ? "south" : "");
         String ew = dx >  0.35f ? "east"  : (dx < -0.35f ? "west"  : "");
         String dir = ns.isEmpty() ? ew : (ew.isEmpty() ? ns : ns + "-" + ew);
         if (dir.isEmpty() || dir.equals(playerFacing)) return;
         playerFacing = dir;
-        playerModel.materials.first().set(
-            TextureAttribute.createDiffuse(game.assets.ayan(dir)));
+        currentWalkFrame = -2; // force texture refresh
+    }
+
+    /** Swap Ayan's texture to the current walk frame (or idle when standing). */
+    private void updatePlayerSprite() {
+        int frame = playerMoving
+            ? ((int) walkAnimTime) % com.silentclassroom.GameAssets.AYAN_WALK_FRAMES
+            : -1;
+        if (frame == currentWalkFrame) return;
+        currentWalkFrame = frame;
+        playerModel.materials.first().set(TextureAttribute.createDiffuse(
+            frame < 0 ? game.assets.ayan(playerFacing)
+                      : game.assets.ayanWalk(playerFacing, frame)));
     }
 
     private void scanNearby() {

@@ -45,6 +45,15 @@ public class GameAssets implements Disposable {
         return get("textures/ayan/" + dir + ".png");
     }
 
+    /** Walking animation frame (0..AYAN_WALK_FRAMES-1) for a direction. */
+    public static final int AYAN_WALK_FRAMES = 4;
+
+    public Texture ayanWalk(String dir, int frame) {
+        // 4-step stride cycle from 3 distinct poses: knee-bent, mid-stride, back-leg, mid-stride
+        int[] cycle = {0, 1, 2, 1};
+        return get("textures/ayan/walk/" + dir + "_" + cycle[frame % 4] + ".png");
+    }
+
     public Texture robot() {
         return get("textures/robot.png");
     }
