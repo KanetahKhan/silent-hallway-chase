@@ -24,7 +24,7 @@ public class MainMenuScreen implements Screen {
 
     public MainMenuScreen(SilentClassroomGame game) {
         this.game = game;
-        this.shape = new ShapeRenderer();
+        this.shape = new ShapeRenderer(20000);
         this.vp = new ScreenViewport();
         for (int i = 0; i < gridPulse.length; i++) {
             gridPulse[i] = (float)(Math.random() * Math.PI * 2);

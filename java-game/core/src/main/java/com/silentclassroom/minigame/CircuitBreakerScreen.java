@@ -67,7 +67,7 @@ public class CircuitBreakerScreen implements Screen {
     public CircuitBreakerScreen(SilentClassroomGame game, int roomId) {
         this.game   = game;
         this.roomId = roomId;
-        this.shape  = new ShapeRenderer();
+        this.shape  = new ShapeRenderer(20000);
         this.vp     = new ScreenViewport();
         buildPuzzle();
     }

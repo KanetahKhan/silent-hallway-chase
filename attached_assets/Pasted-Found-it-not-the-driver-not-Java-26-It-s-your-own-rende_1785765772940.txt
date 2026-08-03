@@ -1,0 +1,45 @@
+Found it — not the driver, not Java 26. It's your own render code.
+
+Stack, bottom-up:
+
+```
+MainMenuScreen.render → ShapeRenderer.end → ImmediateModeRenderer20.flush
+  → VertexBufferObject.setVertices → BufferUtils.copyJni → CRASH
+```
+
+And `siginfo: EXCEPTION_ACCESS_VIOLATION, writing address 0x...4be3d000` — a **write past the end of the vertex buffer**. You're handing `ShapeRenderer` more vertices than it was allocated for.
+
+**The key clue is `elapsed time: 11.585598 seconds`.** It rendered ~700 frames fine, then died. That's not a fixed overflow — something in `MainMenuScreen` accumulates every frame and is never cleared. Default `ShapeRenderer` capacity is 5000 vertices; add 4–8 per frame and you cross it right around the 11-second mark.
+
+Look in `MainMenuScreen` for:
+
+- an `Array`/`List` of particles, stars, glitch bars, scanlines, or trail segments that gets `.add()`ed in `render()` (or on a timer) with no removal or cap
+- a loop count derived from elapsed time instead of screen height
+
+**Confirm in 30 seconds** — right before `shapeRenderer.end()`:
+
+```java
+System.out.println(shapeRenderer.getRenderer().getNumVertices());
+```
+
+Climbing frame over frame → confirmed.
+
+**Play right now** (masks it, doesn't fix it):
+
+```java
+shapeRenderer = new ShapeRenderer(100000);
+```
+
+**Actual fix** — bound the collection:
+
+```java
+while (particles.size > MAX_PARTICLES) particles.removeIndex(0);
+```
+
+plus remove dead entries each frame.
+
+Paste this to the Replit agent:
+
+> MainMenuScreen crashes with a native EXCEPTION_ACCESS_VIOLATION in BufferUtils.copyJni after ~11 seconds on the menu. Cause: ShapeRenderer vertex buffer overflow — a per-frame collection in MainMenuScreen grows unbounded. Find it, cap its size, remove expired entries every frame, and raise the ShapeRenderer capacity to 20000 as a safety margin. Audit every other screen for the same pattern.
+
+Worth checking your gameplay screens for the same bug — if it's a copy-pasted effect, it'll crash mid-chase too, which is much worse than crashing on a menu.

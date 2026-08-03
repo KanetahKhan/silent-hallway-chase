@@ -87,7 +87,7 @@ public class HallwayScreen implements Screen {
         setupCamera();
         setupEnvironment();
         buildScene();
-        shape = new ShapeRenderer();
+        shape = new ShapeRenderer(20000);
         hudViewport = new ScreenViewport();
     }
 

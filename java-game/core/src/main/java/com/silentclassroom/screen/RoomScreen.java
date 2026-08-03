@@ -108,7 +108,7 @@ public class RoomScreen implements Screen {
         setupEnvironment();
         buildScene();
 
-        shape       = new ShapeRenderer();
+        shape       = new ShapeRenderer(20000);
         hudViewport = new ScreenViewport();
 
         Gdx.input.setCursorCatched(true);

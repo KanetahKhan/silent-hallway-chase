@@ -19,7 +19,7 @@ public class GameOverScreen implements Screen {
     public GameOverScreen(SilentClassroomGame game, boolean won) {
         this.game  = game;
         this.won   = won;
-        this.shape = new ShapeRenderer();
+        this.shape = new ShapeRenderer(20000);
         this.vp    = new ScreenViewport();
     }
 
