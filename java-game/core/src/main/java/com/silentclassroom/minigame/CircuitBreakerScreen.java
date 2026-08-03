@@ -100,7 +100,12 @@ public class CircuitBreakerScreen implements Screen {
     public void render(float delta) {
         // Global 9-minute run timer keeps ticking during mini-games
         game.session.update(delta);
-        if (game.session.isGameOver()) { game.toGameOver(false); return; }
+        if (game.session.isGameOver()) {
+            // A win already banked its token; route through endGame so the
+            // player returns to the room (which handles game-over if it stands).
+            if (finished && won) { endGame(); } else { game.toGameOver(false); }
+            return;
+        }
         totalTime += delta;
         pulseTime += delta;
 
@@ -213,7 +218,13 @@ public class CircuitBreakerScreen implements Screen {
                 connectedCount++;
             }
         }
-        if (reqIdx == requiredLen) { finished = true; won = true; return true; }
+        if (reqIdx == requiredLen) {
+            finished = true; won = true;
+            // Credit the token immediately so a timer expiring during the
+            // result screen can't discard a win (onMiniGameComplete is idempotent).
+            game.session.onMiniGameComplete(1, 300 + (int)((timeLimit - timeUsed) * 5));
+            return true;
+        }
         return false;
     }
 
@@ -418,7 +429,7 @@ public class CircuitBreakerScreen implements Screen {
             game.bigFont.setColor(0.2f, 0.7f, 1f, 1f);
             game.bigFont.draw(game.batch, "CIRCUIT COMPLETE!", W/2f - 230, H/2f + 60);
             game.font.setColor(0.7f, 0.9f, 1f, 1f);
-            game.font.draw(game.batch, "Glitch token secured. Token " + (game.session.tokensFound+1) + " / 3", W/2f-200, H/2f+10);
+            game.font.draw(game.batch, "Glitch token secured. Token " + game.session.tokensFound + " / 3", W/2f-200, H/2f+10);
         } else {
             game.bigFont.setColor(1f, 0.3f, 0.3f, 1f);
             game.bigFont.draw(game.batch, "CIRCUIT OVERLOADED", W/2f - 240, H/2f + 60);
@@ -433,10 +444,13 @@ public class CircuitBreakerScreen implements Screen {
         game.toRoom(roomId);
     }
 
-    @Override public void show() {}
+    // The 9-minute run timer intentionally keeps ticking during mini-games;
+    // show() clears any leftover lifecycle pause so it can never stay frozen
+    // after a screen transition.
+    @Override public void show() { game.session.paused = false; }
     @Override public void resize(int w, int h) { vp.update(w, h, true); }
-    @Override public void pause() {}
-    @Override public void resume() {}
+    @Override public void pause() { game.session.paused = true; }
+    @Override public void resume() { game.session.paused = false; }
     @Override public void hide() {}
     @Override public void dispose() { shape.dispose(); }
 }

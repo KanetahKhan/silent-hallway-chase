@@ -104,7 +104,12 @@ public class SilentCodeScreen implements Screen {
     public void render(float delta) {
         // Global 9-minute run timer keeps ticking during mini-games
         game.session.update(delta);
-        if (game.session.isGameOver()) { game.toGameOver(false); return; }
+        if (game.session.isGameOver()) {
+            // A win already banked its token; route through endGame so the
+            // player returns to the room (which handles game-over if it stands).
+            if (finished && won) { endGame(); } else { game.toGameOver(false); }
+            return;
+        }
         totalTime += delta;
         pulseTime += delta;
         wrongFlash = Math.max(0f, wrongFlash - delta * 3f);
@@ -164,7 +169,12 @@ public class SilentCodeScreen implements Screen {
                 emitSparks(cursorPos, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 0.5f, 1f, 0.5f);
                 selectedSlot = -1;
                 // Check win
-                if (isSorted()) { finished = true; won = true; Sfx.miniGameWin(); }
+                if (isSorted()) {
+                    finished = true; won = true; Sfx.miniGameWin();
+                    // Credit the token immediately so a timer expiring during the
+                    // result screen can't discard a win (onMiniGameComplete is idempotent).
+                    game.session.onMiniGameComplete(2, 250 + (int)((TIME_LIMIT - timeUsed) * 4));
+                }
                 else if (arrangement[cursorPos] == cursorPos) Sfx.hit(1);
                 else Sfx.wrongFix();
             }
@@ -439,7 +449,7 @@ public class SilentCodeScreen implements Screen {
             game.bigFont.setColor(0.1f, 0.7f, 1f, 1f);
             game.bigFont.draw(game.batch, "CODE SEQUENCE RESTORED!", W/2f-280, H/2f+60);
             game.font.setColor(0.6f, 0.9f, 1f, 1f);
-            game.font.draw(game.batch, "Glitch token secured. Token " + (game.session.tokensFound+1) + " / 3", W/2f-200, H/2f+10);
+            game.font.draw(game.batch, "Glitch token secured. Token " + game.session.tokensFound + " / 3", W/2f-200, H/2f+10);
         } else {
             game.bigFont.setColor(1f, 0.3f, 0.2f, 1f);
             game.bigFont.draw(game.batch, "COMPILATION ERROR", W/2f-220, H/2f+60);
@@ -454,10 +464,13 @@ public class SilentCodeScreen implements Screen {
         game.toRoom(roomId);
     }
 
-    @Override public void show() {}
+    // The 9-minute run timer intentionally keeps ticking during mini-games;
+    // show() clears any leftover lifecycle pause so it can never stay frozen
+    // after a screen transition.
+    @Override public void show() { game.session.paused = false; }
     @Override public void resize(int w, int h) { vp.update(w, h, true); }
-    @Override public void pause() {}
-    @Override public void resume() {}
+    @Override public void pause() { game.session.paused = true; }
+    @Override public void resume() { game.session.paused = false; }
     @Override public void hide() {}
     @Override public void dispose() { shape.dispose(); }
 }

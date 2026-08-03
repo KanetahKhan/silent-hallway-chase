@@ -81,6 +81,8 @@ public class RoomScreen implements Screen {
     private boolean foundGameThisSearch = false;
     private boolean awaitingGameStart = false;
     private int pendingGameType = -1;
+    /** Independent lifetime of the "press E to start mini-game" offer (seconds). */
+    private float awaitingGameTimer = 0f;
 
     // HUD
     private ShapeRenderer shape;
@@ -356,6 +358,13 @@ public class RoomScreen implements Screen {
         totalTime += delta;
         captureFlash = Math.max(0f, captureFlash - delta * 3f);
         msgTimer     = Math.max(0f, msgTimer - delta);
+        // The "press E to start mini-game" offer has its own lifetime (not tied
+        // to the shared HUD message timer, which unrelated events reset) so a
+        // later E press elsewhere in the room can't silently launch the game.
+        if (awaitingGameStart) {
+            awaitingGameTimer -= delta;
+            if (awaitingGameTimer <= 0f) { awaitingGameStart = false; pendingGameType = -1; }
+        }
 
         game.session.update(delta);
         if (game.session.isGameOver()) { exitRoom(); game.toGameOver(false); return; }
@@ -488,6 +497,7 @@ public class RoomScreen implements Screen {
                 msgText = "Terminal found — Press E to start mini-game";
                 msgTimer = 6f;
                 awaitingGameStart = true;
+                awaitingGameTimer = 6f;
                 pendingGameType   = room.miniGameType;
             }
             return;
@@ -506,6 +516,7 @@ public class RoomScreen implements Screen {
             msgText = "You found a GLITCH TOKEN! [" + room.name + "] — Press E to start mini-game";
             msgTimer = 6f;
             awaitingGameStart = true;
+            awaitingGameTimer = 6f;
             pendingGameType   = room.miniGameType;
         } else {
             Sfx.searchRustle();

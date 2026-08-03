@@ -85,7 +85,9 @@ public class GameSession {
     // --- Queries ---
 
     public boolean isGameOver() {
-        return hp <= 0 || timeRemaining <= 0f;
+        // Once the exit is unlocked the timer no longer matters — a win at the
+        // final second counts as a win, not a loss.
+        return hp <= 0 || (timeRemaining <= 0f && !exitUnlocked);
     }
 
     public boolean isWon() {
